@@ -1,0 +1,244 @@
+-- banco de dados da oficina
+-- drop database oficina;
+create database oficina;
+use oficina;
+
+-- tabela cliente
+create table clients(
+	idClient int auto_increment primary key,
+    Fname varchar(15) not null,
+    Lname varchar(20),
+    CPF char(11) not null,
+    phone varchar(11),
+    Address varchar(255),
+    constraint unique_cpf_client unique (CPF)
+);
+
+-- tabela veículo
+create table vehicles(
+	idVehicle int auto_increment primary key,
+    idClient int not null,
+    plate char(7) not null,
+    model varchar(30),
+    brand varchar(20),
+    vehicleYear int,
+    constraint unique_plate unique (plate),
+    constraint fk_vehicle_client foreign key (idClient) references clients(idClient)
+);
+
+-- tabela equipe
+create table team(
+	idTeam int auto_increment primary key,
+    teamName varchar(30) not null
+);
+
+-- tabela mecânico
+create table mechanics(
+	idMechanic int auto_increment primary key,
+    idTeam int,
+    code char(5) not null,
+    mName varchar(45) not null,
+    Address varchar(255),
+    specialty varchar(30),
+    constraint unique_code_mechanic unique (code),
+    constraint fk_mechanic_team foreign key (idTeam) references team(idTeam)
+);
+
+-- tabela ordem de serviço (OS)
+create table serviceOrder(
+	idOS int auto_increment primary key,
+    idVehicle int not null,
+    idTeam int not null,
+    osType enum('Conserto','Revisão') not null,
+    issueDate date not null,
+    deliveryDate date,
+    osStatus enum('Aguardando autorização','Autorizada','Em execução','Concluída','Cancelada') default 'Aguardando autorização',
+    authorized bool default false,
+    constraint fk_os_vehicle foreign key (idVehicle) references vehicles(idVehicle),
+    constraint fk_os_team foreign key (idTeam) references team(idTeam)
+);
+
+-- tabela de serviços (valor da mão de obra)
+create table services(
+	idService int auto_increment primary key,
+    sDescription varchar(45) not null,
+    laborValue float not null
+);
+
+-- tabela peças
+create table parts(
+	idPart int auto_increment primary key,
+    pName varchar(45) not null,
+    pValue float not null
+);
+
+-- serviços de cada OS
+create table osServices(
+	idOS int,
+    idService int,
+    quantity int default 1,
+    primary key (idOS, idService),
+    constraint fk_osservices_os foreign key (idOS) references serviceOrder(idOS),
+    constraint fk_osservices_service foreign key (idService) references services(idService)
+);
+
+-- peças de cada OS
+create table osParts(
+	idOS int,
+    idPart int,
+    quantity int default 1,
+    primary key (idOS, idPart),
+    constraint fk_osparts_os foreign key (idOS) references serviceOrder(idOS),
+    constraint fk_osparts_part foreign key (idPart) references parts(idPart)
+);
+
+show tables;
+
+
+-- inserindo dados
+
+insert into clients (Fname, Lname, CPF, phone, Address) values
+	('Carlos','Mendes','11122233344','82999990001','rua das palmeiras 12, Centro - Maceió'),
+    ('Fernanda','Lima','22233344455','82999990002','avenida brasil 400, Farol - Maceió'),
+    ('José','Almeida','33344455566','82999990003','rua projetada 8, Jatiúca - Maceió'),
+    ('Patrícia','Souza','44455566677','82999990004','rua do sol 77, Ponta Verde - Maceió'),
+    ('Bruno','Rocha','55566677788',null,'avenida fernandes lima 1500, Gruta - Maceió');
+
+insert into vehicles (idClient, plate, model, brand, vehicleYear) values
+	(1,'ABC1D23','Gol','Volkswagen',2015),
+    (1,'XYZ9K87','Onix','Chevrolet',2020),
+    (2,'QWE4R56','HB20','Hyundai',2018),
+    (3,'RTY7U89','Uno','Fiat',2010),
+    (4,'ASD2F34','Corolla','Toyota',2022),
+    (5,'GHJ5K67','Civic','Honda',2016);
+
+insert into team (teamName) values
+	('Equipe Motor'),
+    ('Equipe Suspensão'),
+    ('Equipe Elétrica');
+
+insert into mechanics (idTeam, code, mName, Address, specialty) values
+	(1,'M0001','Antônio Ferreira','rua a 10, Tabuleiro - Maceió','Motor'),
+    (1,'M0002','Ricardo Santos','rua b 22, Benedito Bentes - Maceió','Motor'),
+    (2,'M0003','Marcos Oliveira','rua c 5, Serraria - Maceió','Suspensão'),
+    (2,'M0004','Paulo Costa','rua d 90, Clima Bom - Maceió','Freios'),
+    (3,'M0005','Lucas Pereira','rua e 31, Feitosa - Maceió','Elétrica'),
+    (3,'M0006','Diego Barros','rua f 14, Jacintinho - Maceió','Ar condicionado');
+
+insert into services (sDescription, laborValue) values
+	('Troca de óleo',50),
+    ('Alinhamento e balanceamento',120),
+    ('Troca de pastilha de freio',90),
+    ('Revisão completa',300),
+    ('Troca de bateria',40),
+    ('Reparo no motor',800),
+    ('Troca de amortecedor',200);
+
+insert into parts (pName, pValue) values
+	('Óleo 5W30 (litro)',45),
+    ('Filtro de óleo',35),
+    ('Pastilha de freio',150),
+    ('Bateria 60Ah',450),
+    ('Amortecedor dianteiro',380),
+    ('Junta do cabeçote',250);
+
+insert into serviceOrder (idVehicle, idTeam, osType, issueDate, deliveryDate, osStatus, authorized) values
+	(1,1,'Revisão','2026-10-01','2026-10-03','Concluída',true),
+    (3,2,'Conserto','2026-10-05','2026-10-08','Concluída',true),
+    (4,1,'Conserto','2026-10-10','2026-10-20','Concluída',true),
+    (5,3,'Conserto','2026-10-15','2026-10-16','Concluída',true),
+    (2,1,'Revisão','2026-11-02','2026-11-04','Em execução',true),
+    (6,2,'Conserto','2026-11-10',null,'Aguardando autorização',false),
+    (1,3,'Conserto','2026-11-12',null,'Cancelada',false);
+
+insert into osServices (idOS, idService, quantity) values
+	(1,1,1),
+    (1,4,1),
+    (2,2,1),
+    (2,3,1),
+    (3,6,1),
+    (4,5,1),
+    (5,1,1),
+    (5,4,1),
+    (6,7,2),
+    (7,5,1);
+
+insert into osParts (idOS, idPart, quantity) values
+	(1,1,4),
+    (1,2,1),
+    (2,3,1),
+    (3,6,1),
+    (3,1,4),
+    (4,4,1),
+    (5,1,4),
+    (5,2,1),
+    (6,5,2);
+
+
+-- consultas
+
+select * from clients;
+select * from vehicles;
+
+-- quais mecanicos sao da equipe 1?
+select mName, specialty from mechanics where idTeam = 1;
+
+-- quais OS ainda estão abertas?
+select * from serviceOrder where osStatus = 'Em execução' or osStatus = 'Aguardando autorização';
+
+-- idade dos veiculos
+select plate, model, year(curdate()) - vehicleYear as idade from vehicles order by idade desc;
+
+-- quantos dias cada OS levou pra ficar pronta
+select idOS, issueDate, deliveryDate, datediff(deliveryDate, issueDate) as dias
+	from serviceOrder
+    where osStatus = 'Concluída'
+    order by dias;
+
+ veiculos de cada cliente
+select c.Fname, c.Lname, v.plate, v.model
+	from clients c
+    inner join vehicles v on c.idClient = v.idClient
+    order by c.Fname;
+valor da mão de obra de cada OS
+select os.idOS, v.plate, sum(oss.quantity * s.laborValue) as valor_mao_de_obra
+	from serviceOrder os
+    inner join vehicles v on v.idVehicle = os.idVehicle
+    inner join osServices oss on os.idOS = oss.idOS
+    inner join services s on s.idService = oss.idService
+    group by os.idOS, v.plate
+    order by valor_mao_de_obra desc;
+ valor das peças de cada OS
+select osp.idOS, sum(osp.quantity * p.pValue) as valor_pecas
+	from osParts osp
+    inner join parts p on p.idPart = osp.idPart
+    group by osp.idOS;
+
+quantas OS cada equipe atendeu?
+select t.teamName, count(os.idOS) as qtd_os
+	from team t
+    left join serviceOrder os on t.idTeam = os.idTeam
+    group by t.teamName
+    order by qtd_os desc;
+
+clientes com mais de um veiculo
+select c.Fname, c.Lname, count(*) as qtd_veiculos
+	from clients c
+    inner join vehicles v on c.idClient = v.idClient
+    group by c.idClient, c.Fname, c.Lname
+    having count(*) > 1;
+
+ serviços que foram feitos mais de uma vez
+select s.sDescription, count(*) as vezes
+	from services s
+    inner join osServices oss on s.idService = oss.idService
+    group by s.sDescription
+    having vezes > 1;
+
+ mecanicos que trabalharam em cada OS
+select os.idOS, v.plate, t.teamName, m.mName
+	from serviceOrder os
+    inner join vehicles v on v.idVehicle = os.idVehicle
+    inner join team t on t.idTeam = os.idTeam
+    inner join mechanics m on m.idTeam = t.idTeam
+    order by os.idOS;
